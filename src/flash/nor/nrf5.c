@@ -604,7 +604,6 @@ static int nrf5_erase_page(struct flash_bank *bank,
 				LOG_ERROR("Unsupported NRF5 family");
 				return ERROR_FAIL;
 		}
-		LOG_WARNING("NRF: 0x%02x 0x%08x 0x%08x", NRF5_DEVICE_FAMILY(chip), NRF5_UICR_APPROTECT, protect);
 
 		if ( check_bank ) {
 			/* We can't erase the UICR.  Double-check to
