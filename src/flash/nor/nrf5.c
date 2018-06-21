@@ -84,6 +84,7 @@ enum nrf5_uicr_registers {
 	NRF5_UICR_RBPCONF	= NRF5_UICR_REG(0x004),
 	NRF5_UICR_XTALFREQ	= NRF5_UICR_REG(0x008),
 	NRF5_UICR_FWID		= NRF5_UICR_REG(0x010),
+	NRF5_UICR_APPROTECT	= NRF5_UICR_REG(0x208), /* NRF52 only */
 };
 
 enum nrf5_nvmc_registers {
@@ -106,6 +107,14 @@ enum nrf5_nvmc_config_bits {
 
 };
 
+struct nrf5_device_spec {
+	uint16_t hwid;
+	const char *part;
+	const char *variant;
+	const char *build_code;
+	unsigned int flash_size_kb;
+};
+
 struct nrf5_info {
 	uint32_t code_page_size;
 
@@ -115,15 +124,8 @@ struct nrf5_info {
 			      struct nrf5_info *chip,
 			      const uint8_t *buffer, uint32_t offset, uint32_t count);
 	} bank[2];
+	const struct nrf5_device_spec *spec;
 	struct target *target;
-};
-
-struct nrf5_device_spec {
-	uint16_t hwid;
-	const char *part;
-	const char *variant;
-	const char *build_code;
-	unsigned int flash_size_kb;
 };
 
 #define NRF5_DEVICE_DEF(id, pt, var, bcode, fsize) \
@@ -134,6 +136,8 @@ struct nrf5_device_spec {
 .build_code    = bcode,                             \
 .flash_size_kb = (fsize),                           \
 }
+
+#define NRF5_DEVICE_FAMILY(chip) (chip->spec ? (chip->spec->part[1]-'0') : 0)
 
 /* The known devices table below is derived from the "nRF51 Series
  * Compatibility Matrix" document, which can be found by searching for
@@ -537,6 +541,8 @@ static int nrf5_probe(struct flash_bank *bank)
 		chip->bank[1].probed = true;
 	}
 
+	chip->spec = spec;
+
 	return ERROR_OK;
 }
 
@@ -573,15 +579,34 @@ static int nrf5_erase_page(struct flash_bank *bank,
 	}
 
 	if (bank->base == NRF5_UICR_BASE) {
-		uint32_t ppfc;
-		res = target_read_u32(chip->target, NRF5_FICR_PPFC,
-				      &ppfc);
-		if (res != ERROR_OK) {
-			LOG_ERROR("Couldn't read PPFC register");
-			return res;
+		uint32_t protect;
+		bool check_bank;
+		switch ( NRF5_DEVICE_FAMILY(chip) ) {
+			case 1:
+				res = target_read_u32(chip->target, NRF5_FICR_PPFC,
+						&protect);
+				if (res != ERROR_OK) {
+					LOG_ERROR("Couldn't read PPFC protection register");
+					return res;
+				}
+				check_bank = (protect & 0xFF) == 0xFF;
+				break;
+			case 2:
+				res = target_read_u32(chip->target, NRF5_UICR_APPROTECT,
+						&protect);
+				if (res != ERROR_OK) {
+					LOG_ERROR("Couldn't read APPROTECT protection register");
+					return res;
+				}
+				check_bank = (protect & 0xFF) != 0xFF;
+				break;
+			default:
+				LOG_ERROR("Unsupported NRF5 family");
+				return ERROR_FAIL;
 		}
+		LOG_WARNING("NRF: 0x%02x 0x%08x 0x%08x", NRF5_DEVICE_FAMILY(chip), NRF5_UICR_APPROTECT, protect);
 
-		if ((ppfc & 0xFF) == 0xFF) {
+		if ( check_bank ) {
 			/* We can't erase the UICR.  Double-check to
 			   see if it's already erased before complaining. */
 			default_flash_blank_check(bank);
