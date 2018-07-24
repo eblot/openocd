@@ -91,6 +91,10 @@ static int speed_coeff = 113714;
 static int speed_offset = 28;
 static unsigned int jtag_delay;
 
+/* Host CPU frequency management */
+static const char SCALE_GOV_POWERSAVE[]="powersave";
+static char scale_gov[16];
+
 static bb_value_t bcm2835gpio_read(void)
 {
 	return (GPIO_LEV & 1<<tdo_gpio) ? BB_HIGH : BB_LOW;
@@ -429,6 +433,7 @@ static bool bcm2835gpio_swd_mode_possible(void)
 
 static int bcm2835gpio_init(void)
 {
+    int gov_fd;
 	bitbang_interface = &bcm2835gpio_bitbang;
 
 	LOG_INFO("BCM2835 GPIO JTAG/SWD bitbang driver");
@@ -444,6 +449,28 @@ static int bcm2835gpio_init(void)
 		LOG_ERROR("Require tck, tms, tdi and tdo gpios for JTAG mode and/or swclk and swdio gpio for SWD mode");
 		return ERROR_JTAG_INIT_FAILED;
 	}
+
+    gov_fd = open("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", O_RDONLY);
+    if (gov_fd < 0) {
+        perror("open scaling_governor");
+        return ERROR_JTAG_INIT_FAILED;
+    }
+    if (read(gov_fd, scale_gov, sizeof(scale_gov)) < 0) {
+        perror("unable to save current scaling governor setting");
+        scale_gov[0] = '\0';
+    }
+    close(gov_fd);
+    
+    gov_fd = open("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", O_WRONLY);
+    if (gov_fd < 0) {
+        perror("open scaling_governor");
+        return ERROR_JTAG_INIT_FAILED;
+    }
+    if (write(gov_fd, SCALE_GOV_POWERSAVE, sizeof(SCALE_GOV_POWERSAVE)) < 0) {
+        perror("cannot lock CPU frequency");
+        /* not blocking, but expect weird JTAG/SWD clock pacing */
+    }
+    close(gov_fd);
 
 	dev_mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
 	if (dev_mem_fd < 0) {
@@ -528,6 +555,19 @@ static int bcm2835gpio_quit(void)
 		SET_MODE_GPIO(trst_gpio, trst_gpio_mode);
 	if (srst_gpio != -1)
 		SET_MODE_GPIO(srst_gpio, srst_gpio_mode);
+
+    if ( scale_gov[0] ) {
+        int gov_fd;
+        gov_fd = open("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", O_WRONLY);
+        if (gov_fd < 0) {
+            perror("open scaling_governor");
+        } else {
+            if (write(gov_fd, scale_gov, strlen(scale_gov)) < 0) {
+                perror("cannot restore scaling governor");
+            }
+            close(gov_fd);
+        }
+    }
 
 	return ERROR_OK;
 }
