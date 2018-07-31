@@ -4,8 +4,6 @@ else
 OOCD_TRACE_FILES =
 endif
 
-%C%_libtarget_la_LIBADD = %D%/openrisc/libopenrisc.la
-
 STARTUP_TCL_SRCS += %D%/startup.tcl
 
 noinst_LTLIBRARIES += %D%/libtarget.la
@@ -13,19 +11,7 @@ noinst_LTLIBRARIES += %D%/libtarget.la
 	$(TARGET_CORE_SRC) \
 	$(ARM_DEBUG_SRC) \
 	$(ARMV4_5_SRC) \
-	$(ARMV6_SRC) \
-	$(ARMV7_SRC) \
-	$(ARM_MISC_SRC) \
-	$(AVR32_SRC) \
-	$(MIPS32_SRC) \
-	$(NDS32_SRC) \
-	$(STM8_SRC) \
-	$(INTEL_IA32_SRC) \
-	%D%/avrt.c \
-	%D%/dsp563xx.c \
-	%D%/dsp563xx_once.c \
-	%D%/dsp5680xx.c \
-	%D%/hla_target.c
+	$(ARMV7_SRC)
 
 if TARGET64
 %C%_libtarget_la_SOURCES +=$(ARMV8_SRC)
@@ -216,5 +202,3 @@ INTEL_IA32_SRC = \
 	%D%/lakemont.h \
 	%D%/x86_32_common.h \
 	%D%/arm_cti.h
-
-include %D%/openrisc/Makefile.am

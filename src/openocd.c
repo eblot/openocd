@@ -255,10 +255,6 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 		&interface_register_commands,
 		&target_register_commands,
 		&flash_register_commands,
-		&nand_register_commands,
-		&pld_register_commands,
-		&mflash_register_commands,
-		&cti_register_commands,
 		&dap_register_commands,
 		NULL
 	};

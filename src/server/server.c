@@ -645,7 +645,6 @@ void server_free(void)
 {
 	tcl_service_free();
 	telnet_service_free();
-	jsp_service_free();
 }
 
 void exit_on_signal(int sig)
@@ -755,10 +754,6 @@ int server_register_commands(struct command_context *cmd_ctx)
 		return retval;
 
 	retval = tcl_register_commands(cmd_ctx);
-	if (ERROR_OK != retval)
-		return retval;
-
-	retval = jsp_register_commands(cmd_ctx);
 	if (ERROR_OK != retval)
 		return retval;
 

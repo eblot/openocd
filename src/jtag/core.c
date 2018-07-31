@@ -1783,15 +1783,7 @@ static int jtag_select(struct command_context *ctx)
 
 	retval = jtag_register_commands(ctx);
 
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = svf_register_commands(ctx);
-
-	if (retval != ERROR_OK)
-		return retval;
-
-	return xsvf_register_commands(ctx);
+	return retval;
 }
 
 static struct transport jtag_transport = {
