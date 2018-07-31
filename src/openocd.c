@@ -165,14 +165,6 @@ COMMAND_HANDLER(handle_init_command)
 	if (command_run_line(CMD_CTX, "flash init") != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (command_run_line(CMD_CTX, "mflash init") != ERROR_OK)
-		return ERROR_FAIL;
-
-	if (command_run_line(CMD_CTX, "nand init") != ERROR_OK)
-		return ERROR_FAIL;
-
-	if (command_run_line(CMD_CTX, "pld init") != ERROR_OK)
-		return ERROR_FAIL;
 	command_context_mode(CMD_CTX, COMMAND_EXEC);
 
 	/* initialize telnet subsystem */
