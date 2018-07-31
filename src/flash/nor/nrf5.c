@@ -714,10 +714,6 @@ static int nrf5_ll_flash_write(struct nrf5_info *chip, uint32_t offset, const ui
 		return ERROR_OK;
 	}
 
-	LOG_WARNING("using fast async flash loader. This is currently supported");
-	LOG_WARNING("only with ST-Link and CMSIS-DAP. If you have issues, add");
-	LOG_WARNING("\"set WORKAREASIZE 0\" before sourcing nrf51.cfg/nrf52.cfg to disable it");
-
 	retval = target_write_buffer(target, write_algorithm->address,
 				sizeof(nrf5_flash_write_code),
 				nrf5_flash_write_code);
